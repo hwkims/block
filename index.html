@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>분산 블록체인 메신저 (코인 & 거래)</title>
+  <style>
+    body, html {
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol"; /* 이모지 폰트 추가 */
+      background-color: #f0f0f0;
+      height: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    #app {
+      width: 375px;
+      height: 667px;
+      background-color: white;
+      border-radius: 40px;
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      position: relative; /* 상대 위치 설정 (자식 요소 위치 지정 기준) */
+    }
+
+    /* 헤더 */
+    #header {
+      background-color: #f7f7f8;
+      padding: 15px;
+      border-bottom: 1px solid #ddd;
+      text-align: center;
+      font-weight: bold;
+      font-size: 18px;
+      display: flex; /* Flexbox 사용 */
+      justify-content: space-between; /* 요소 사이 간격 최대화 */
+      align-items: center; /* 수직 중앙 정렬 */
+    }
+
+    #node-info {
+        display:flex;
+        align-items: center;
+    }
+
+    #node-id {
+      margin-right: 10px;
+      font-size: 14px;
+    }
+
+    #balance {
+      font-size: 14px;
+      color: #007bff;
+    }
+
+    /* 채팅 영역 */
+    #chat-area {
+      flex-grow: 1;
+      overflow-y: auto;
+      padding: 15px;
+    }
+
+    .message {
+      margin-bottom: 10px;
+      padding: 10px 15px; /* 좌우 패딩 약간 증가 */
+      border-radius: 20px;
+      max-width: 70%;
+      word-break: break-word; /* 긴 단어 줄바꿈 처리 */
+      position: relative; /* 상대 위치 (시간 표시 기준) */
+    }
+     .my-message {
+        background-color: #007bff;
+        color: white;
+        align-self: flex-end;
+        margin-right: 5px;
+        text-align: right;
+    }
+
+    .other-message {
+        background-color: #e5e5ea;
+        color: black;
+        align-self: flex-start;
+        margin-left: 5px;
+    }
+
+      .message-time {
+        font-size: 11px; /* 시간 글꼴 크기 약간 작게 */
+        color: #999;
+        position: absolute; /* 절대 위치 */
+        bottom: 3px;       /* 아래쪽 여백 */
+    }
+    .my-message .message-time {
+        color:#fff;
+        right: 8px; /* 오른쪽 여백 */
+
+    }
+    .other-message .message-time {
+        color:#777;
+        left: 8px; /* 왼쪽 여백 */
+    }
+
+
+    /* 입력 영역 */
+    #input-area {
+      display: flex;
+      padding: 10px;
+      border-top: 1px solid #ddd;
+    }
+
+    #message-input {
+      flex-grow: 1;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 20px;
+      margin-right: 10px;
+      font-size: 16px; /* 입력 글꼴 크기 증가 */
+    }
+
+    #send-button {
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 20px;
+      padding: 10px 20px;
+      cursor: pointer;
+      transition: background-color 0.2s ease; /* 부드러운 배경색 전환 */
+    }
+
+    #send-button:hover {
+      background-color: #0056b3; /* 호버 시 더 어두운 색 */
+    }
+
+    /* 코인 전송 버튼 */
+    #send-coin-button {
+      background: none;
+      border: none;
+      padding: 0;
+      margin-left: 5px;
+      cursor: pointer;
+      font-size: 24px; /* 이모지 크기 */
+      transition: transform 0.1s ease; /* 부드러운 확대/축소 */
+    }
+
+    #send-coin-button:hover {
+      transform: scale(1.2); /* 호버 시 약간 확대 */
+    }
+
+    /* 코인 전송 모달 */
+    #coin-modal {
+      position: fixed; /* 고정 위치 */
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5); /* 반투명 배경 */
+      display: none; /* 기본적으로 숨김 */
+      justify-content: center;
+      align-items: center;
+      z-index: 1000; /* 최상위 레이어 */
+    }
+
+    #coin-modal-content {
+      background-color: white;
+      padding: 20px;
+      border-radius: 20px;
+      text-align: center;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    }
+
+    #coin-amount-input {
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      margin-bottom: 10px;
+      width: 80%;
+      font-size: 16px;
+    }
+
+    #confirm-coin-send, #cancel-coin-send {
+      padding: 10px 20px;
+      border-radius: 10px;
+      margin: 5px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+
+    #confirm-coin-send {
+      background-color: #4CAF50; /* 녹색 */
+      color: white;
+      border: none;
+    }
+    #confirm-coin-send:hover{
+       background-color: #388e3c;
+    }
+
+    #cancel-coin-send {
+      background-color: #f44336; /* 빨간색 */
+      color: white;
+      border: none;
+    }
+    #cancel-coin-send:hover{
+        background-color: #d32f2f;
+    }
+    /* 로딩 애니메이션 (채굴 중) */
+    #loading-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(255, 255, 255, 0.8);
+      display: none; /* 기본적으로 숨김 */
+      justify-content: center;
+      align-items: center;
+      z-index: 999; /* 다른 요소 위에 표시 */
+    }
+
+    .spinner {
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid #3498db;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite; /* 회전 애니메이션 */
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* 블록체인 정보 (디버깅용) */
+    #blockchain-info {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      background-color: rgba(0, 0, 0, 0.7);
+      color: white;
+      padding: 10px;
+      font-size: 12px;
+      overflow-x: auto; /* 가로 스크롤 허용 */
+      z-index: 1001; /* 모달보다 위에 표시 */
+      display: none; /* 기본적으로 숨김 */
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div id="header">
+      <div id="node-info">
+        <span id="node-id"></span>
+        <span id="balance"></span>
+      </div>
+    </div>
+    <div id="chat-area"></div>
+    <div id="input-area">
+      <input type="text" id="message-input" placeholder="메시지를 입력하세요">
+      <button id="send-coin-button" title="코인 보내기">🪙</button>
+      <button id="send-button">전송</button>
+    </div>
+
+    <!-- 코인 전송 모달 -->
+    <div id="coin-modal">
+      <div id="coin-modal-content">
+        <h3>코인 보내기</h3>
+        <input type="number" id="coin-amount-input" placeholder="보낼 코인 수">
+        <button id="confirm-coin-send">보내기</button>
+        <button id="cancel-coin-send">취소</button>
+      </div>
+    </div>
+
+    <!-- 로딩 오버레이 -->
+    <div id="loading-overlay">
+      <div class="spinner"></div>
+    </div>
+
+      <!-- 블록체인 정보 (디버깅용) -->
+    <div id="blockchain-info"></div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+  <script>
+    // 노드 ID (임의 생성 - 실제로는 더 안전한 방식 사용)
+    const nodeId = "node-" + Math.random().toString(36).substring(2, 15);
+    document.getElementById('node-id').textContent = `${nodeId} `;
+
+    // 코인 잔액 (초기값)
+    let balance = 100;
+    document.getElementById('balance').textContent = `💰 ${balance}`;
+
+
+    // 블록 클래스 (이전 코드와 거의 동일)
+   class Block {
+        constructor(timestamp, data, previousHash = '') {
+            this.timestamp = timestamp;
+            this.data = data; // data:  { type, ... } 형태.  type: 'message' | 'transaction'
+            this.previousHash = previousHash;
+            this.hash = this.calculateHash();
+            this.nonce = 0; // Proof-of-Work를 위한 nonce
+        }
+
+        calculateHash() {
+            return CryptoJS.SHA256(this.timestamp + JSON.stringify(this.data) + this.previousHash + this.nonce).toString();
+        }
+
+        // Proof-of-Work (PoW, 작업 증명) - 난이도 조절 가능
+        mineBlock(difficulty) {
+            while (this.hash.substring(0, difficulty) !== Array(difficulty + 1).join("0")) {
+                this.nonce++;
+                this.hash = this.calculateHash();
+            }
+            console.log("Block mined: " + this.hash);
+        }
+    }
+
+    // 블록체인 클래스
+    class Blockchain {
+        constructor() {
+            this.chain = [this.createGenesisBlock()];
+            this.difficulty = 3; // PoW 난이도
+            this.pendingTransactions = []; // 미사용
+            this.miningReward = 1;       // 채굴 보상
+        }
+
+        createGenesisBlock() {
+            return new Block(Date.now(), "Genesis Block", "0");
+        }
+
+        getLatestBlock() {
+            return this.chain[this.chain.length - 1];
+        }
+
+        addBlock(newBlock) {
+           newBlock.previousHash = this.getLatestBlock().hash;
+            newBlock.mineBlock(this.difficulty);
+            this.chain.push(newBlock);
+        }
+
+        // 블록체인 유효성 검사 (이전과 동일)
+        isChainValid() {
+          for (let i = 1; i < this.chain.length; i++) {
+              const currentBlock = this.chain[i];
+              const previousBlock = this.chain[i - 1];
+
+              if (currentBlock.hash !== currentBlock.calculateHash()) {
+                  console.error("Invalid block hash");
+                  return false;
+              }
+
+              if (currentBlock.previousHash !== previousBlock.hash) {
+                  console.error("Invalid previous hash");
+                  return false;
+              }
+          }
+          return true;
+      }
+
+        // 잔액 확인 (블록체인 전체 순회)
+        getBalanceOfAddress(address) {
+            let balance = 0;
+
+            for (const block of this.chain) {
+              if (block.data === "Genesis Block") continue; // 제네시스 블록은 건너뜀
+
+              if (Array.isArray(block.data)) { // block.data가 배열인지 확인
+                for (const transaction of block.data) {
+                  if (transaction.type === 'transaction') { // type이 transaction인 경우만 처리
+                    if (transaction.fromAddress === address) {
+                        balance -= transaction.amount;
+                    }
+                    if (transaction.toAddress === address) {
+                        balance += transaction.amount;
+                    }
+                  }
+                }
+              }
+            }
+
+            return balance;
+        }
+    }
+
+
+    // 블록체인 인스턴스 생성
+    const myBlockchain = new Blockchain();
+
+    // DOM 요소 가져오기
+    const chatArea = document.getElementById('chat-area');
+    const messageInput = document.getElementById('message-input');
+    const sendButton = document.getElementById('send-button');
+    const sendCoinButton = document.getElementById('send-coin-button');
+    const coinModal = document.getElementById('coin-modal');
+    const coinAmountInput = document.getElementById('coin-amount-input');
+    const confirmCoinSend = document.getElementById('confirm-coin-send');
+    const cancelCoinSend = document.getElementById('cancel-coin-send');
+    const loadingOverlay = document.getElementById('loading-overlay');
+    const blockchainInfoDiv = document.getElementById('blockchain-info');
+
+    // 메시지 전송 함수
+   function sendMessage() {
+      const messageText = messageInput.value.trim();
+      if (!messageText) return;
+
+      const message = {
+        type: 'message', // 메시지 타입 추가
+        sender: nodeId,
+        text: messageText,
+        timestamp: new Date().toISOString()
+      };
+
+      // 새 블록 생성 및 체인에 추가 (채굴)
+      loadingOverlay.style.display = 'flex'; // 로딩 표시
+      setTimeout(() => { // 채굴 시간 시뮬레이션 (실제로는 PoW)
+          const newBlock = new Block(Date.now(), [message]); // data를 배열로
+          myBlockchain.addBlock(newBlock);
+
+          // UI 업데이트 및 코인 보상
+          displayBlockchainMessages();
+          balance += myBlockchain.miningReward;  // 채굴 보상 지급
+          updateBalance();
+
+          messageInput.value = '';
+          chatArea.scrollTop = chatArea.scrollHeight;
+          loadingOverlay.style.display = 'none'; // 로딩 숨김
+
+          // 블록체인 정보 업데이트
+          updateBlockchainInfo();
+
+      }, 500); // 0.5초 지연 (PoW 시뮬레이션)
+    }
+
+
+    // 코인 전송 함수
+    function sendCoin(amount) {
+      if (amount <= 0) {
+        alert("유효한 코인 수를 입력하세요.");
+        return;
+      }
+      if (balance < amount) {
+        alert("잔액이 부족합니다.");
+        return;
+      }
+
+
+      const transaction = {
+          type: 'transaction', // 트랜잭션 타입
+          fromAddress: nodeId,
+          toAddress: 'otherNode', // 받는 사람 (여기서는 임시)
+          amount: amount,
+          timestamp: new Date().toISOString()
+      };
+
+      // 새 블록 생성 및 체인에 추가 (채굴)
+      loadingOverlay.style.display = 'flex';
+       setTimeout(() => {
+          const newBlock = new Block(Date.now(), [transaction]);
+          myBlockchain.addBlock(newBlock);
+
+
+          // UI 업데이트 및 잔액 차감
+          balance -= amount;  // 보낸 사람 잔액 차감
+          // 받는 사람 잔액 증가 (여기서는 시뮬레이션이므로 생략)
+          updateBalance();
+
+          loadingOverlay.style.display = 'none';
+          updateBlockchainInfo(); // 디버깅 정보 업데이트
+
+          // 이 트랜잭션이 포함된 새 블록을 UI에 표시
+          displayBlockchainMessages();
+          alert(`${amount} 코인을 전송했습니다.`);
+
+      }, 500);
+    }
+
+
+    // 블록체인 메시지를 UI에 표시
+    function displayBlockchainMessages() {
+      chatArea.innerHTML = ''; // 기존 내용 초기화
+
+       myBlockchain.chain.forEach(block => {
+        if (block.data === "Genesis Block") return; // 제네시스 블록 제외
+
+        // block.data가 배열인지 확인
+        if (Array.isArray(block.data)) {
+            block.data.forEach(item => {
+              if (item.type === 'message') {
+                displayMessage(item); // 메시지 표시
+              } else if (item.type === 'transaction') {
+                displayTransaction(item); // 트랜잭션 표시
+              }
+            });
+        }
+      });
+    }
+
+
+    // 메시지 표시 함수
+    function displayMessage(message) {
+      const messageDiv = document.createElement('div');
+      messageDiv.classList.add('message');
+      messageDiv.classList.add(message.sender === nodeId ? 'my-message' : 'other-message');
+      messageDiv.textContent = message.text;
+
+      const timeSpan = document.createElement('span');
+      timeSpan.classList.add('message-time');
+      const date = new Date(message.timestamp);
+      timeSpan.textContent = `${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+      messageDiv.appendChild(timeSpan);
+
+      chatArea.appendChild(messageDiv);
+    }
+
+
+    // 트랜잭션(코인 전송) 표시 함수
+    function displayTransaction(transaction) {
+      const transactionDiv = document.createElement('div');
+      transactionDiv.classList.add('message', 'other-message'); // 트랜잭션 스타일
+
+      // 트랜잭션 내용 구성 (이모지 사용)
+      let transactionText = `🪙 ${transaction.amount} 코인 전송: `;
+      transactionText += transaction.fromAddress === nodeId ? `(나) ➡️ ` : `${transaction.fromAddress} ➡️ `;
+      transactionText += transaction.toAddress === nodeId ? `(나)` : `${transaction.toAddress}`;
+
+      transactionDiv.textContent = transactionText;
+
+      // 시간 표시
+      const timeSpan = document.createElement('span');
+      timeSpan.classList.add('message-time');
+      const date = new Date(transaction.timestamp);
+      timeSpan.textContent = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      transactionDiv.appendChild(timeSpan);
+
+      chatArea.appendChild(transactionDiv);
+    }
+
+    // 잔액 업데이트 함수
+    function updateBalance() {
+      // 블록체인을 순회하며 잔액 계산 (더 정확한 방법)
+      balance = myBlockchain.getBalanceOfAddress(nodeId);
+      document.getElementById('balance').textContent = `💰 ${balance}`;
+    }
+
+    // 이벤트 리스너
+    sendButton.addEventListener('click', sendMessage);
+    messageInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        sendMessage();
+      }
+    });
+
+    // 코인 보내기 버튼 클릭 시 모달 표시
+    sendCoinButton.addEventListener('click', () => {
+      coinModal.style.display = 'flex';
+    });
+
+    // 모달에서 "보내기" 버튼 클릭 시
+    confirmCoinSend.addEventListener('click', () => {
+      const amount = parseInt(coinAmountInput.value, 10);
+      sendCoin(amount);
+      coinModal.style.display = 'none'; // 모달 닫기
+      coinAmountInput.value = '';     // 입력 필드 초기화
+    });
+
+    // 모달에서 "취소" 버튼 클릭 시
+    cancelCoinSend.addEventListener('click', () => {
+      coinModal.style.display = 'none';
+      coinAmountInput.value = '';
+    });
+
+    // 블록체인 정보 업데이트 함수 (디버깅용)
+    function updateBlockchainInfo() {
+        blockchainInfoDiv.innerHTML = `<pre>${JSON.stringify(myBlockchain, null, 2)}</pre>`;
+        blockchainInfoDiv.style.display = 'block';
+    }
+
+  </script>
+</body>
+</html>
