@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>분산 블록체인 메신저 (코인 & 거래)</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body, html {
+      height: 100%;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: linear-gradient(135deg, #e0eafc, #cfdef3);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+    }
+
+    #app {
+      width: 375px;
+      height: 667px;
+      background: #fff;
+      border-radius: 40px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      transition: transform 0.3s ease;
+    }
+
+    #app:active {
+      transform: scale(0.98); /* 클릭 시 살짝 축소 */
+    }
+
+    #header {
+      background: linear-gradient(to right, #007bff, #00c4ff);
+      padding: 15px;
+      color: #fff;
+      font-weight: bold;
+      font-size: 18px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    #node-info {
+      display: flex;
+      align-items: center;
+    }
+
+    #node-id, #balance {
+      font-size: 14px;
+      transition: all 0.3s ease;
+    }
+
+    #balance {
+      background: rgba(255, 255, 255, 0.2);
+      padding: 5px 10px;
+      border-radius: 20px;
+    }
+
+    #chat-area {
+      flex-grow: 1;
+      overflow-y: auto;
+      padding: 20px;
+      background: #fafafa;
+      scroll-behavior: smooth;
+    }
+
+    .message {
+      margin-bottom: 15px;
+      padding: 12px 18px;
+      border-radius: 25px;
+      max-width: 75%;
+      word-break: break-word;
+      position: relative;
+      animation: slideIn 0.3s ease;
+    }
+
+    @keyframes slideIn {
+      from { transform: translateY(20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    .my-message {
+      background: #007bff;
+      color: #fff;
+      align-self: flex-end;
+      margin-left: auto;
+    }
+
+    .other-message {
+      background: #e5e5ea;
+      color: #000;
+      align-self: flex-start;
+    }
+
+    .message-time {
+      font-size: 10px;
+      color: #aaa;
+      position: absolute;
+      bottom: -15px;
+      right: 5px;
+    }
+
+    .my-message .message-time { color: #fff; }
+
+    #input-area {
+      display: flex;
+      padding: 15px;
+      background: #fff;
+      border-top: 1px solid #eee;
+      box-shadow: 0 -5px 10px rgba(0, 0, 0, 0.05);
+    }
+
+    #message-input {
+      flex-grow: 1;
+      padding: 12px 20px;
+      border: none;
+      background: #f0f0f0;
+      border-radius: 25px;
+      margin-right: 10px;
+      font-size: 16px;
+      transition: all 0.2s ease;
+    }
+
+    #message-input:focus {
+      outline: none;
+      background: #e8e8e8;
+      transform: scale(1.02);
+    }
+
+    #send-button, #send-coin-button {
+      border: none;
+      border-radius: 25px;
+      padding: 12px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    #send-button {
+      background: #007bff;
+      color: #fff;
+      padding: 12px 25px;
+    }
+
+    #send-button:hover { background: #0056b3; transform: scale(1.05); }
+
+    #send-coin-button {
+      background: none;
+      font-size: 28px;
+    }
+
+    #send-coin-button:hover { transform: scale(1.2); }
+
+    #coin-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.6);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    #coin-modal-content {
+      background: #fff;
+      padding: 25px;
+      border-radius: 20px;
+      width: 300px;
+      text-align: center;
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+      animation: popUp 0.3s ease;
+    }
+
+    @keyframes popUp {
+      from { transform: scale(0.8); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+
+    #coin-amount-input {
+      padding: 12px;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      width: 100%;
+      margin-bottom: 15px;
+      font-size: 16px;
+    }
+
+    #confirm-coin-send, #cancel-coin-send {
+      padding: 12px 25px;
+      border-radius: 25px;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    #confirm-coin-send {
+      background: #4CAF50;
+      color: #fff;
+    }
+
+    #confirm-coin-send:hover { background: #388e3c; transform: scale(1.05); }
+
+    #cancel-coin-send {
+      background: #f44336;
+      color: #fff;
+    }
+
+    #cancel-coin-send:hover { background: #d32f2f; transform: scale(1.05); }
+
+    #loading-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(255, 255, 255, 0.9);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 999;
+    }
+
+    .spinner {
+      border: 5px solid #f3f3f3;
+      border-top: 5px solid #007bff;
+      border-radius: 50%;
+      width: 50px;
+      height: 50px;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    #blockchain-info {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      background: rgba(0, 0, 0, 0.8);
+      color: #fff;
+      padding: 10px;
+      font-size: 12px;
+      overflow-x: auto;
+      z-index: 1001;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div id="header">
+      <div id="node-info">
+        <span id="node-id"></span>
+        <span id="balance"></span>
+      </div>
+    </div>
+    <div id="chat-area"></div>
+    <div id="input-area">
+      <input type="text" id="message-input" placeholder="메시지를 입력하세요">
+      <button id="send-coin-button" title="코인 보내기">🪙</button>
+      <button id="send-button">전송</button>
+    </div>
+
+    <div id="coin-modal">
+      <div id="coin-modal-content">
+        <h3>코인 보내기</h3>
+        <input type="number" id="coin-amount-input" placeholder="보낼 코인 수" min="1">
+        <button id="confirm-coin-send">보내기</button>
+        <button id="cancel-coin-send">취소</button>
+      </div>
+    </div>
+
+    <div id="loading-overlay">
+      <div class="spinner"></div>
+    </div>
+
+    <div id="blockchain-info"></div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+  <script>
+    const nodeId = "node-" + Math.random().toString(36).substring(2, 15);
+    document.getElementById('node-id').textContent = `${nodeId} `;
+    let balance = 100;
+    document.getElementById('balance').textContent = `💰 ${balance}`;
+
+    class Block {
+      constructor(timestamp, data, previousHash = '') {
+        this.timestamp = timestamp;
+        this.data = data;
+        this.previousHash = previousHash;
+        this.hash = this.calculateHash();
+        this.nonce = 0;
+      }
+
+      calculateHash() {
+        return CryptoJS.SHA256(this.timestamp + JSON.stringify(this.data) + this.previousHash + this.nonce).toString();
+      }
+
+      async mineBlock(difficulty) {
+        while (this.hash.substring(0, difficulty) !== Array(difficulty + 1).join("0")) {
+          this.nonce++;
+          this.hash = this.calculateHash();
+          await new Promise(resolve => setTimeout(resolve, 0)); // 비동기 처리로 UI 프리징 방지
+        }
+        console.log("Block mined: " + this.hash);
+      }
+    }
+
+    class Blockchain {
+      constructor() {
+        this.chain = [this.createGenesisBlock()];
+        this.difficulty = 3;
+        this.miningReward = 2;
+      }
+
+      createGenesisBlock() {
+        return new Block(Date.now(), "Genesis Block", "0");
+      }
+
+      getLatestBlock() {
+        return this.chain[this.chain.length - 1];
+      }
+
+      async addBlock(newBlock) {
+        newBlock.previousHash = this.getLatestBlock().hash;
+        await newBlock.mineBlock(this.difficulty);
+        this.chain.push(newBlock);
+      }
+
+      isChainValid() {
+        for (let i = 1; i < this.chain.length; i++) {
+          const currentBlock = this.chain[i];
+          const previousBlock = this.chain[i - 1];
+          if (currentBlock.hash !== currentBlock.calculateHash() || currentBlock.previousHash !== previousBlock.hash) {
+            return false;
+          }
+        }
+        return true;
+      }
+
+      getBalanceOfAddress(address) {
+        let balance = 100; // 초기 잔액
+        for (const block of this.chain) {
+          if (block.data === "Genesis Block") continue;
+          if (Array.isArray(block.data)) {
+            for (const tx of block.data) {
+              if (tx.type === 'transaction') {
+                if (tx.fromAddress === address) balance -= tx.amount;
+                if (tx.toAddress === address) balance += tx.amount;
+              }
+            }
+          }
+        }
+        return balance;
+      }
+    }
+
+    const myBlockchain = new Blockchain();
+    const chatArea = document.getElementById('chat-area');
+    const messageInput = document.getElementById('message-input');
+    const sendButton = document.getElementById('send-button');
+    const sendCoinButton = document.getElementById('send-coin-button');
+    const coinModal = document.getElementById('coin-modal');
+    const coinAmountInput = document.getElementById('coin-amount-input');
+    const confirmCoinSend = document.getElementById('confirm-coin-send');
+    const cancelCoinSend = document.getElementById('cancel-coin-send');
+    const loadingOverlay = document.getElementById('loading-overlay');
+    const blockchainInfoDiv = document.getElementById('blockchain-info');
+
+    async function sendMessage() {
+      const messageText = messageInput.value.trim();
+      if (!messageText) return;
+
+      const message = { type: 'message', sender: nodeId, text: messageText, timestamp: new Date().toISOString() };
+      loadingOverlay.style.display = 'flex';
+
+      const newBlock = new Block(Date.now(), [message]);
+      await myBlockchain.addBlock(newBlock);
+
+      balance += myBlockchain.miningReward;
+      updateBalance();
+      displayBlockchainMessages();
+      messageInput.value = '';
+      chatArea.scrollTop = chatArea.scrollHeight;
+      loadingOverlay.style.display = 'none';
+      updateBlockchainInfo();
+    }
+
+    async function sendCoin(amount) {
+      if (amount <= 0 || balance < amount) {
+        alert(amount <= 0 ? "유효한 코인 수를 입력하세요." : "잔액이 부족합니다.");
+        return;
+      }
+
+      const transaction = {
+        type: 'transaction',
+        fromAddress: nodeId,
+        toAddress: 'otherNode-' + Math.random().toString(36).substring(2, 15),
+        amount: amount,
+        timestamp: new Date().toISOString()
+      };
+
+      loadingOverlay.style.display = 'flex';
+      const newBlock = new Block(Date.now(), [transaction]);
+      await myBlockchain.addBlock(newBlock);
+
+      updateBalance();
+      displayBlockchainMessages();
+      loadingOverlay.style.display = 'none';
+      updateBlockchainInfo();
+      alert(`${amount} 코인을 전송했습니다.`);
+    }
+
+    function displayBlockchainMessages() {
+      chatArea.innerHTML = '';
+      myBlockchain.chain.forEach(block => {
+        if (block.data === "Genesis Block") return;
+        if (Array.isArray(block.data)) {
+          block.data.forEach(item => {
+            item.type === 'message' ? displayMessage(item) : displayTransaction(item);
+          });
+        }
+      });
+    }
+
+    function displayMessage(message) {
+      const div = document.createElement('div');
+      div.classList.add('message', message.sender === nodeId ? 'my-message' : 'other-message');
+      div.textContent = message.text;
+      const time = document.createElement('span');
+      time.classList.add('message-time');
+      time.textContent = new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      div.appendChild(time);
+      chatArea.appendChild(div);
+    }
+
+    function displayTransaction(transaction) {
+      const div = document.createElement('div');
+      div.classList.add('message', 'other-message');
+      div.textContent = `🪙 ${transaction.amount} 코인 전송: ${transaction.fromAddress} ➡️ ${transaction.toAddress}`;
+      const time = document.createElement('span');
+      time.classList.add('message-time');
+      time.textContent = new Date(transaction.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      div.appendChild(time);
+      chatArea.appendChild(div);
+    }
+
+    function updateBalance() {
+      balance = myBlockchain.getBalanceOfAddress(nodeId);
+      document.getElementById('balance').textContent = `💰 ${balance}`;
+    }
+
+    function updateBlockchainInfo() {
+      blockchainInfoDiv.innerHTML = `<pre>${JSON.stringify(myBlockchain.chain, null, 2)}</pre>`;
+      blockchainInfoDiv.style.display = 'block';
+    }
+
+    sendButton.addEventListener('click', sendMessage);
+    messageInput.addEventListener('keypress', e => e.key === 'Enter' && sendMessage());
+    sendCoinButton.addEventListener('click', () => coinModal.style.display = 'flex');
+    confirmCoinSend.addEventListener('click', () => {
+      const amount = parseInt(coinAmountInput.value, 10);
+      sendCoin(amount);
+      coinModal.style.display = 'none';
+      coinAmountInput.value = '';
+    });
+    cancelCoinSend.addEventListener('click', () => {
+      coinModal.style.display = 'none';
+      coinAmountInput.value = '';
+    });
+
+    // 터치 이벤트 추가 (모바일 경험 개선)
+    document.getElementById('app').addEventListener('touchstart', () => document.getElementById('app').style.transform = 'scale(0.98)');
+    document.getElementById('app').addEventListener('touchend', () => document.getElementById('app').style.transform = 'scale(1)');
+  </script>
+</body>
+</html>
